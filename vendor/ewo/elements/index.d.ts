@@ -1,5 +1,7 @@
 export { EwoSegmented, type SegmentedOption } from './segmented';
 export { EwoSwitch } from './switch';
+export { EwoSlider } from './slider';
+export { snap, valueAt, fractionOf, scaleOf, type Scale as SliderScale } from './slider-scale';
 export { EwoBadge } from './badge';
 export { EwoEmpty } from './empty';
 export { EwoSkeleton } from './skeleton';

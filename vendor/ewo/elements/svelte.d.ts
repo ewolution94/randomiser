@@ -6,7 +6,7 @@
 // listens for the element's own change event.
 
 import type { HTMLAttributes } from 'svelte/elements';
-import type { EwoBadge, EwoEmblem, EwoEmblemMaker, EwoEmpty, EwoGuide, EwoHalftone, EwoSegmented, EwoSettingsBasics, EwoSettingsButton, EwoSheet, EwoSkeleton, EwoSlotReel, EwoConnection, EwoSwitch, EwoThemeToggle, EwoTicks, EwoToaster, LanguageChoice, SegmentedOption, SettingsThemeChoice, Tick } from './index';
+import type { EwoBadge, EwoEmblem, EwoEmblemMaker, EwoEmpty, EwoGuide, EwoHalftone, EwoSegmented, EwoSettingsBasics, EwoSettingsButton, EwoSheet, EwoSkeleton, EwoSlotReel, EwoSlider, EwoConnection, EwoSwitch, EwoThemeToggle, EwoTicks, EwoToaster, LanguageChoice, SegmentedOption, SettingsThemeChoice, Tick } from './index';
 
 type Handler<E, D> = (event: CustomEvent<D> & { currentTarget: E }) => void;
 
@@ -23,6 +23,23 @@ declare module 'svelte/elements' {
       disabled?: boolean;
       onchange?: Handler<EwoSegmented, { value: string }>;
       oninput?: Handler<EwoSegmented, { value: string }>;
+    };
+    'ewo-slider': Omit<HTMLAttributes<EwoSlider>, 'onchange' | 'oninput'> & {
+      value?: number;
+      min?: number;
+      max?: number;
+      step?: number;
+      mark?: number | null;
+      label?: string;
+      unit?: string;
+      name?: string;
+      ticks?: boolean;
+      ends?: boolean;
+      nobubble?: boolean;
+      disabled?: boolean;
+      format?: ((value: number) => string) | null;
+      onchange?: Handler<EwoSlider, { value: number }>;
+      oninput?: Handler<EwoSlider, { value: number }>;
     };
     'ewo-switch': Omit<HTMLAttributes<EwoSwitch>, 'onchange'> & {
       checked?: boolean;

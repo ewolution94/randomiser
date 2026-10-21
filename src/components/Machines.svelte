@@ -1,15 +1,16 @@
 <!--
   Settings → Machines: how each machine runs (tune.ts). Pick the machine (it opens on the one in
-  use), then its length on a slider and its feel: the wheel's speed and direction, the jackpot's
-  speed, how much the ducks overtake. Each setting says underneath what it does; Drama keeps the
-  tricks. Changes are kept at once and apply from the next draw.
+  use), then its length on Folio's <ewo-slider> (in the fair's look: the lever's red ball, a gold mark
+  at the default, a tick per step when sounds are on) and its feel: the wheel's speed and direction,
+  the jackpot's speed, how much the ducks overtake. Each setting says underneath what it does; Drama
+  keeps the tricks. A length is kept when the slider is let go; it applies from the next draw.
 -->
 <script lang="ts">
   import { secs, t } from '../lib/i18n.svelte';
   import { MODE_ICON } from '../lib/icons';
+  import { sfx } from '../lib/sound.svelte';
   import { MODES, app, save, type Mode } from '../lib/state.svelte';
   import { LENGTH, OVERTAKING, PACES, TURNS, defaultTune, isDefault, reelSteps, wheelTurns, type Overtaking, type Pace, type Turn } from '../lib/tune';
-  import Slider from './Slider.svelte';
 
   let { machine = $bindable<Mode>('wheel') }: { machine?: Mode } = $props();
 
@@ -17,9 +18,10 @@
   const turns = $derived(Math.round(wheelTurns(app.tune.wheel.seconds, app.tune.wheel.pace)));
   const names = $derived(reelSteps(app.tune.slots.seconds, app.tune.slots.pace) + 1);
 
-  function setSeconds(m: Mode, n: number) {
+  /** While dragging: the value and its hints follow, a tick per step; kept on release (onchange). */
+  function slide(m: Mode, n: number) {
     app.tune[m].seconds = n;
-    save();
+    sfx.tick(1.25);
   }
   function setWheel(patch: Partial<{ pace: Pace; turn: Turn }>) {
     Object.assign(app.tune.wheel, patch);
@@ -62,7 +64,19 @@
             <span class="name">{t('length')}</span>
             <b class="value">{secs(app.tune[m].seconds)}</b>
           </div>
-          <Slider value={app.tune[m].seconds} min={LENGTH[m].min} max={LENGTH[m].max} step={LENGTH[m].step} def={LENGTH[m].def} label={t('length')} format={secs} onchange={(n) => setSeconds(m, n)} />
+          <ewo-slider
+            label={t('length')}
+            min={LENGTH[m].min}
+            max={LENGTH[m].max}
+            step={LENGTH[m].step}
+            mark={LENGTH[m].def}
+            unit="s"
+            value={app.tune[m].seconds}
+            ticks
+            ends
+            oninput={(e) => slide(m, e.detail.value)}
+            onchange={save}
+          ></ewo-slider>
           <span class="hint">{t(`lengthHint_${m}`)}</span>
         </div>
         {#if m === 'wheel'}
@@ -171,6 +185,28 @@
     font: 400 20px/1 var(--heavy);
     color: var(--red);
     font-variant-numeric: tabular-nums;
+  }
+  /* Folio's slider in the fair's look: a red rail, the jackpot lever's ball, a gold mark. */
+  ewo-slider {
+    --ewo-slider-knob-size: 26px;
+    --ewo-slider-track-height: 10px;
+    --ewo-slider-fill: var(--red);
+    --ewo-slider-track: rgba(29, 42, 92, 0.13);
+    --ewo-slider-track-shadow: inset 0 1px 2px rgba(29, 42, 92, 0.28);
+    --ewo-slider-knob: radial-gradient(circle at 35% 30%, #ff8f8f, var(--red) 45%, #7a1020);
+    --ewo-slider-knob-shadow: 0 0 0 2px var(--navy), 0 3px 6px rgba(80, 20, 20, 0.35);
+    --ewo-slider-mark: var(--gold);
+    --ewo-slider-tick: rgba(29, 42, 92, 0.3);
+    --ewo-slider-bubble: var(--navy);
+    --ewo-slider-bubble-ink: var(--cream);
+    color: var(--navy);
+  }
+  ewo-slider::part(bubble) {
+    font: 800 13px/1 var(--body);
+  }
+  ewo-slider::part(ends) {
+    font: 700 11px/1.2 var(--body);
+    color: var(--ink-3);
   }
   .hint {
     font: 500 13px/1.4 var(--body);

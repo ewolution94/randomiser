@@ -13,6 +13,7 @@ import '../vendor/ewo/elements/settings-button.js';
 import '../vendor/ewo/elements/segmented.js';
 import '../vendor/ewo/elements/switch.js';
 import '../vendor/ewo/elements/slot-reel.js';
+import '../vendor/ewo/elements/slider.js';
 // Every tap answers on a phone, the games' lively way (Folio's pressFeedback).
 import { pressFeedback } from '../vendor/ewo/elements/press.js';
 
