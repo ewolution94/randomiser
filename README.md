@@ -1,7 +1,6 @@
 # Randomiser
 
-Who hosts today? The afternoon meeting's randomiser, drawn at the fair: a painted wheel, a jackpot
-or a duck race. Live at [randomiser.ewolution.cloud](https://randomiser.ewolution.cloud).
+The afternoon meeting's randomiser, drawn at the fair: a painted wheel, a jackpot or a duck race. Live at [randomiser.ewolution.cloud](https://randomiser.ewolution.cloud).
 
 - **Three ways to draw.** The **wheel** (Glücksrad) has brass nails between the slices and a leather
   pointer that clicks over them; tap it, flick it, or press the ticket. The **jackpot** is a

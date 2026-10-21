@@ -26,7 +26,7 @@
   import { MODES, app, pool, save, type Mode, type Person } from './lib/state.svelte';
   import { sfx, sound, unlock } from './lib/sound.svelte';
 
-  /** The browser's crypto source: fair enough to decide who hosts. */
+  /** The browser's crypto source: fair enough for a draw. */
   function random() {
     const a = new Uint32Array(1);
     crypto.getRandomValues(a);

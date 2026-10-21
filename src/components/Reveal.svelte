@@ -46,7 +46,7 @@
   <div class="curtain" aria-hidden="true"></div>
   <div class="body">
     <p class="prize">{t('prize')}</p>
-    <p class="q">{t('question')}</p>
+    <p class="q">{t('winner')}</p>
     <h2 class="name" id="winner-name" style:--len={len}>{winner.n}</h2>
     <p class="quip">{t(quip.key, quip.vars)}</p>
     <div class="actions">

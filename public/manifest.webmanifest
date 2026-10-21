@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Randomiser",
   "short_name": "Randomiser",
-  "description": "Wer moderiert heute? Ausgelost auf der Kirmes: Glücksrad, Jackpot oder Entenrennen.",
+  "description": "Ausgelost auf der Kirmes: Glücksrad, Jackpot oder Entenrennen.",
   "lang": "de",
   "start_url": "/",
   "scope": "/",

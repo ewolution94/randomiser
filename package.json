@@ -2,7 +2,7 @@
   "name": "randomiser",
   "private": true,
   "version": "1.0.0",
-  "description": "The afternoon meeting's randomiser: who hosts today, drawn at the fair, by wheel, jackpot or duck race.",
+  "description": "The afternoon meeting's randomiser, drawn at the fair: by wheel, jackpot or duck race.",
   "type": "module",
   "license": "MIT",
   "engines": {
