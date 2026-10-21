@@ -1,0 +1,115 @@
+/* Folio's shared tokens (vendor/ewo, from `npm run vendor -- randomiser` in Folio), then the fair:
+   Randomiser is light only, cream paper under red-and-cream stripes, navy ink. The Folio elements
+   (the settings sheet, the switches) read the --ewo-* names, so they take the fair's colours too. */
+@import '../vendor/ewo/tokens/tokens.css';
+@import '../vendor/ewo/tokens/projects.css';
+@import '../vendor/ewo/tokens/base.css';
+
+/* Two quick taps on a control must not zoom the page: iOS Safari's double-tap zoom also made
+   sticky headers look stuck mid-page (learnings/ios-and-webkit.md, 2026-10-08). Zero specificity,
+   so a component's own touch-action (the wheel's canvas) still wins. */
+:where(button, a, label, summary, input, select, textarea, [role='button'], [role='radio']) {
+  touch-action: manipulation;
+}
+
+:root {
+  color-scheme: only light;
+
+  /* The fair's paints. */
+  --red: #d7263d;
+  --red-deep: #8f1424;
+  --cream: #fff6e0;
+  --page: #fdf3dd;
+  --paper: #fffaf0;
+  --navy: #1d2a5c;
+  --ink-2: #34437a;
+  --ink-3: #56628f;
+  --line: rgba(29, 42, 92, 0.2);
+  --field: rgba(29, 42, 92, 0.06);
+  --gold: #e8bf5a;
+  --mustard: #f2b134;
+  --wood: #8a5228;
+  --wood-dark: #5e3416;
+
+  --display: 'Rye', 'Rockwell', Georgia, serif;
+  --heavy: 'Alfa Slab One', 'Rockwell', Georgia, serif;
+  --body: 'Bitter', Georgia, serif;
+
+  /* Folio's names, in the fair's paints. */
+  --ewo-bg: var(--page);
+  --ewo-bg-raised: var(--paper);
+  --ewo-panel: var(--paper);
+  --ewo-fg: var(--navy);
+  --ewo-fg-2: var(--ink-2);
+  --ewo-fg-3: var(--ink-3);
+  --ewo-line: var(--line);
+  --ewo-sans: var(--body);
+  --ewo-mono: var(--body);
+  --ewo-accent: var(--red);
+  --ewo-accent-ink: var(--cream);
+
+  /* Layout C, "Big screen": the canopy, the bar, the signs at the sides, the ticket under the
+     machine; the machine takes what the window leaves, height first. */
+  --canopy: 44px;
+  --bar: 56px;
+  --foot: 132px;
+  --gutter: clamp(16px, 2.5vw, 40px);
+  --side: clamp(132px, 11vw, 168px);
+  --stage-h: max(320px, calc(100svh - var(--canopy) - 18px - var(--bar) - var(--foot)));
+  --stage-w: calc(100vw - 2 * var(--side) - 2 * var(--gutter) - 32px);
+  --wheel: min(var(--stage-h), var(--stage-w), 980px);
+  --row: clamp(64px, calc((var(--stage-h) - 150px) / 3), 132px);
+  --cab: min(var(--stage-w) - 48px, calc(var(--row) * 6.4), 820px);
+  --race: min(var(--stage-w), 1320px);
+  --race-h: var(--stage-h);
+}
+
+/* A phone: the signs sit in rows under the bar, so the machine has the width and less height. */
+@media (max-width: 760px) {
+  :root {
+    --bar: 52px;
+    --foot: 104px;
+    --stage-w: calc(100vw - 2 * var(--gutter));
+    --stage-h: calc(100svh - var(--canopy) - 18px - var(--bar) - 150px - var(--foot));
+    --wheel: min(var(--stage-w), max(280px, var(--stage-h)));
+    --row: 64px;
+    --cab: calc(100vw - 2 * var(--gutter) - 40px);
+    --race: var(--stage-w);
+    --race-h: max(360px, var(--stage-h));
+  }
+}
+
+html {
+  background: var(--page);
+  overflow-x: clip;
+}
+
+body {
+  background: repeating-linear-gradient(90deg, rgba(215, 38, 61, 0.05) 0 30px, transparent 30px 60px), var(--page);
+  color: var(--navy);
+  font: 500 15px/1.45 var(--body);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+[hidden] {
+  display: none !important;
+}
