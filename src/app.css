@@ -49,33 +49,31 @@
   --ewo-accent-ink: var(--cream);
 
   /* Layout C, "Big screen": the canopy, the bar, the signs at the sides, the ticket under the
-     machine; the machine takes what the window leaves, height first. */
+     machine. The app is exactly the window's height and the machine's cell takes what the bar and
+     the ticket leave; the cell is a size container, so the machines size themselves in cq units of
+     the space they really have, nothing guessed (the user, 2026-10-22: "no scrolling of any kind").
+     The wheel keeps 16 px for its stand's feet; the cabinet's rows are its height less ~150 px of
+     marquee, glass and brass. */
   --canopy: 44px;
   --bar: 56px;
-  --foot: 132px;
   --gutter: clamp(16px, 2.5vw, 40px);
   --side: clamp(132px, 11vw, 168px);
-  --stage-h: max(320px, calc(100svh - var(--canopy) - 18px - var(--bar) - var(--foot)));
-  --stage-w: calc(100vw - 2 * var(--side) - 2 * var(--gutter) - 32px);
-  --wheel: min(var(--stage-h), var(--stage-w), 980px);
-  --row: clamp(64px, calc((var(--stage-h) - 150px) / 3), 132px);
-  --cab: min(var(--stage-w) - 48px, calc(var(--row) * 6.4), 820px);
-  --race: min(var(--stage-w), 1320px);
-  --race-h: var(--stage-h);
+  --wheel: min(100cqh - 16px, 100cqw, 980px);
+  --row: clamp(40px, (100cqh - 150px) / 3, 132px);
+  --cab: min(100cqw - 48px, var(--row) * 6.4, 820px);
+  --race: min(100cqw, 1320px);
+  --race-h: 100cqh;
 }
 
 /* A phone: the signs sit in rows under the bar, so the machine has the width and less height. */
 @media (max-width: 760px) {
   :root {
     --bar: 52px;
-    --foot: 104px;
-    --stage-w: calc(100vw - 2 * var(--gutter));
-    --stage-h: calc(100svh - var(--canopy) - 18px - var(--bar) - 150px - var(--foot));
-    --wheel: min(var(--stage-w), max(280px, var(--stage-h)));
-    --row: 64px;
-    --cab: calc(100vw - 2 * var(--gutter) - 40px);
-    --race: var(--stage-w);
-    --race-h: max(360px, var(--stage-h));
+    --wheel: min(100cqw, 100cqh - 16px);
+    --row: clamp(28px, (100cqh - 124px) / 3, 64px);
+    --cab: calc(100cqw - 40px);
+    --race: 100cqw;
+    --race-h: 100cqh;
   }
 }
 
@@ -101,12 +99,20 @@ button {
   outline-offset: 2px;
 }
 
+/* Read aloud, never seen, and never part of the page's size: pinned to the top left with no margin.
+   In the flow after the full-height app, the announcer's paragraph margin made every window scroll
+   by 16 px (2026-10-22, the user's 3440 × 1440 screen). */
 .sr-only {
   position: absolute;
+  top: 0;
+  left: 0;
   width: 1px;
   height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
   overflow: hidden;
-  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
   white-space: nowrap;
 }
 

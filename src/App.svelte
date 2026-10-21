@@ -228,9 +228,10 @@
 <p class="sr-only" aria-live="assertive">{announce}</p>
 
 <style>
+  /* Exactly the window: the machine's cell gets the rest and the page never scrolls. */
   .app {
     position: relative;
-    min-height: 100svh;
+    height: 100svh;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
     padding-top: calc(var(--canopy) + 18px + env(safe-area-inset-top, 0px));
@@ -239,18 +240,23 @@
   .stage {
     display: grid;
     grid-template-columns: var(--side) minmax(0, 1fr) var(--side);
+    grid-template-rows: minmax(0, 1fr);
     align-items: center;
     gap: 16px;
+    min-height: 0;
     padding: 0 var(--gutter);
   }
   .side {
     display: grid;
     justify-items: center;
   }
+  /* The space the machines size themselves to (--wheel, --row, --cab, --race in app.css). */
   .machine {
+    container-type: size;
+    align-self: stretch;
+    min-height: 0;
     display: grid;
     place-items: center;
-    min-height: var(--stage-h);
   }
   .machine:global(.shake) {
     animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
@@ -300,8 +306,8 @@
   @media (max-width: 760px) {
     .stage {
       grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto auto minmax(0, 1fr);
       gap: 12px;
-      align-content: start;
     }
     .side.left {
       order: -2;
@@ -310,7 +316,6 @@
       order: -1;
     }
     .machine {
-      min-height: 0;
       padding-top: 6px;
     }
     .foot {

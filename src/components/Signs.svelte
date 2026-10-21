@@ -155,6 +155,25 @@
       transition: scale 0.2s;
     }
   }
+  /* A short laptop window (under ~700 px of height): smaller signs, so the column fits beside the
+     machine instead of pushing it over the ticket. */
+  @media (min-width: 761px) and (max-height: 700px) {
+    .signs {
+      gap: 9px;
+    }
+    .sign {
+      padding: 8px 8px 7px;
+      gap: 4px;
+      font-size: 14px;
+    }
+    .drama .sign {
+      padding: 8px;
+    }
+    .sign svg {
+      width: 26px;
+      height: 26px;
+    }
+  }
   /* A phone: a row of compact signs under the bar. */
   @media (max-width: 760px) {
     .signs {

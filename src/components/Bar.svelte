@@ -124,10 +124,16 @@
       transition: scale 0.2s;
     }
   }
-  /* A phone: the name a size down, the pill only the count (its full words are its label). */
+  /* A phone: the pill only the count (its full words are its label), and the name as big as the bar
+     leaves it, up to 24 px. At a fixed 24 px the bar needed 377 px on a 375 px iPhone and the browser
+     zoomed the whole page out (2026-10-22). The bar is the container: the name is 6.6 times as wide
+     as its size, the tools need 184 px with a two-digit count, the gap 12. */
   @media (max-width: 760px) {
+    .bar {
+      container-type: inline-size;
+    }
     .logo {
-      font-size: 24px;
+      font-size: clamp(14px, (100cqw - 200px) / 6.6, 24px);
     }
     .who {
       padding: 0 12px;
@@ -143,9 +149,13 @@
       gap: 6px;
     }
   }
-  @media (max-width: 360px) {
-    .logo {
-      font-size: 21px;
+  /* The smallest phones (320 px): a little less air in the tools, so the name keeps 14 px. */
+  @media (max-width: 340px) {
+    .tools {
+      gap: 3px;
+    }
+    .who {
+      padding: 0 9px;
     }
   }
 </style>

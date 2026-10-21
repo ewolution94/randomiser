@@ -35,7 +35,8 @@
     const n = Math.max(1, people.length);
     const measure = () => {
       const h = box?.clientHeight ?? 0;
-      lane = Math.round(Math.max(24, Math.min(56, (h - 70) / n)));
+      // As thin as 14 px, so every duck fits however short the window (the river clips).
+      lane = Math.round(Math.max(14, Math.min(56, (h - 70) / n)));
     };
     measure();
     const ro = new ResizeObserver(measure);
