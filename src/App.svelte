@@ -19,7 +19,6 @@
   import Signs from './components/Signs.svelte';
   import Ticket from './components/Ticket.svelte';
   import WheelMachine from './components/WheelMachine.svelte';
-  import { makeConfetti } from './lib/confetti';
   import { loadCensus } from './lib/census';
   import { t, type Key } from './lib/i18n.svelte';
   import { pickIndex, sitOut, type Drama } from './lib/staging';
@@ -42,20 +41,18 @@
   let busy = $state(false);
   let drawerOpen = $state(false);
   let settingsOpen = $state(false);
-  let won: { winner: Person; quip: { key: Key; vars?: Record<string, string> } } | null = $state(null);
+  let won: { winner: Person; quip: { key: Key; vars?: Record<string, string> }; no: number; from: DOMRect | null } | null = $state(null);
   let toastText = $state('');
   let toastTimer = 0;
   let announce = $state('');
   let machineEl: HTMLElement;
+  let footEl: HTMLElement;
 
   let wheel: WheelMachine;
   let jackpot: JackpotMachine;
   let race: RaceMachine;
-  let confettiCanvas: HTMLCanvasElement;
-  let confetti: ReturnType<typeof makeConfetti>;
 
   onMount(() => {
-    confetti = makeConfetti(confettiCanvas);
     loadCensus();
     // A first visit has no names: the drawer asks for them.
     if (!app.names.length) drawerOpen = true;
@@ -82,7 +79,7 @@
     const p = people;
     unlock();
     if (p.length === 1 && app.once) {
-      reveal(p[0], { key: 'lastOne' });
+      reveal(p[0], { key: 'lastOne' }, app.ticket);
       return;
     }
     if (p.length < 2) {
@@ -90,6 +87,7 @@
       if (app.names.length) toast(t('needTwo'));
       return;
     }
+    const no = app.ticket;
     app.ticket++;
     save();
     busy = true;
@@ -112,11 +110,12 @@
     app.history.unshift({ n: p[w].n, c: p[w].c, mode, t: Date.now() });
     app.history = app.history.slice(0, 12);
     save();
-    reveal(p[w], quip);
+    reveal(p[w], quip, no);
   }
 
-  function reveal(winner: Person, quip: { key: Key; vars?: Record<string, string> }) {
-    won = { winner, quip };
+  /** `no` is the number on the ticket that was pressed; the prize carries it. */
+  function reveal(winner: Person, quip: { key: Key; vars?: Record<string, string> }, no: number) {
+    won = { winner, quip, no, from: footEl.querySelector('button')?.getBoundingClientRect() ?? null };
     announce = t('drawn', { name: winner.n });
     if (!reduced) {
       machineEl.classList.remove('shake');
@@ -125,7 +124,6 @@
     }
     sfx.tusch();
     if (app.drama === 'max') sfx.horn(1.1);
-    confetti.burst([winner.bg, '#d7263d', '#1d2a5c', '#f2b134', '#3fb8a6', '#fff6e0'], app.mode === 'slots');
   }
 
   function close(again: boolean) {
@@ -203,7 +201,7 @@
       <Signs kind="drama" mode={app.mode} drama={app.drama} disabled={busy} onmode={setMode} ondrama={setDrama} />
     </div>
   </div>
-  <footer class="foot">
+  <footer class="foot" bind:this={footEl}>
     <Ticket mode={app.mode} ticket={app.ticket} {ready} disabled={busy} onclick={() => void go()} />
     <p class="keys"><kbd>Space</kbd> {t('keysSpin')} · <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> {t('keysMode')}</p>
   </footer>
@@ -212,9 +210,8 @@
 <Drawer bind:open={drawerOpen} {busy} ontoast={toast} />
 <Settings bind:open={settingsOpen} />
 {#if won}
-  <Reveal winner={won.winner} quip={won.quip} once={app.once} onagain={() => close(true)} ondone={() => close(false)} />
+  <Reveal winner={won.winner} quip={won.quip} once={app.once} mode={app.mode} ticket={won.no} from={won.from} {reduced} onagain={() => close(true)} ondone={() => close(false)} />
 {/if}
-<canvas class="confetti" bind:this={confettiCanvas} aria-hidden="true"></canvas>
 <div class="toast" class:on={toastText} role="status" aria-live="polite">{toastText}</div>
 <p class="sr-only" aria-live="assertive">{announce}</p>
 
@@ -307,14 +304,6 @@
     .foot {
       padding-bottom: 8px;
     }
-  }
-  .confetti {
-    position: fixed;
-    inset: 0;
-    z-index: 70;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
   }
   .toast {
     position: fixed;

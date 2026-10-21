@@ -85,7 +85,7 @@ const STRINGS = {
     close: 'Schließen',
     allBack: 'Alle waren dran. Alle wieder im Topf!',
     winner: 'Gewonnen',
-    prize: 'Hauptgewinn',
+    prize: 'Haupt\u00adgewinn',
     again: 'Neues Los',
     next: 'Nächste Runde',
     done: 'Fertig',

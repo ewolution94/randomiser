@@ -1,24 +1,50 @@
 <!--
-  The winner: a striped curtain drops, the first-prize rosette, the question, and the name on a
-  hanging sign that swings in on its ropes; under it the quip. "New ticket" (Space) draws again,
-  "Done" (Escape) closes. The way out is always a visible button (learnings/dialogs-and-overlays.md),
-  and closing happens at once.
+  The winner as a prize ticket (look C of plans/randomiser/winner.html, picked 2026-10-21): the room
+  goes dark, a lamp under the canopy throws a spotlight, and the ticket that was pressed rises into
+  it and turns into the prize: the name on cream, the ticket's number on the stub, a First-prize
+  stamp, a few gold sparks. "New ticket" (Space) draws again, "Done" (Escape) closes. The way out is
+  always a visible button (learnings/dialogs-and-overlays.md), and closing happens at once.
 -->
 <script lang="ts">
   import { lockScroll } from '../../vendor/ewo/elements/scroll-lock.js';
   import { t, type Key } from '../lib/i18n.svelte';
-  import type { Person } from '../lib/state.svelte';
+  import type { Mode, Person } from '../lib/state.svelte';
 
   let {
     winner,
     quip,
     once,
+    mode,
+    ticket,
+    from,
+    reduced,
     onagain,
     ondone,
-  }: { winner: Person; quip: { key: Key; vars?: Record<string, string> }; once: boolean; onagain: () => void; ondone: () => void } = $props();
+  }: {
+    winner: Person;
+    quip: { key: Key; vars?: Record<string, string> };
+    once: boolean;
+    mode: Mode;
+    ticket: number;
+    /** The pressed ticket's box, where the prize rises from; null when it can't be measured. */
+    from: DOMRect | null;
+    reduced: boolean;
+    onagain: () => void;
+    ondone: () => void;
+  } = $props();
 
   let done: HTMLButtonElement;
+  let wrap: HTMLDivElement;
   const len = $derived(Math.max(3, [...winner.n].length));
+  const serial = $derived(t('ticket', { n: String(ticket).padStart(4, '0') }));
+  const rise = $derived(!reduced && from !== null);
+  // Where the sparks fall in the light: decoration only, so Math.random will do.
+  const sparks = Array.from({ length: 16 }, () => ({
+    x: 15 + Math.random() * 70,
+    d: 2.8 + Math.random() * 1.8,
+    dl: 0.7 + Math.random() * 2.6,
+    sx: Math.round((Math.random() - 0.5) * 140),
+  }));
 
   $effect(() => {
     const unlock = lockScroll();
@@ -27,6 +53,26 @@
       clearTimeout(timer);
       unlock();
     };
+  });
+
+  // The ticket rises from the button that was pressed, grows into the card and settles.
+  $effect(() => {
+    if (!rise || !from) return;
+    const to = wrap.getBoundingClientRect();
+    const dx = from.x + from.width / 2 - (to.x + to.width / 2);
+    const dy = from.y + from.height / 2 - (to.y + to.height / 2);
+    const s = from.width / to.width;
+    // Eased per step, as a CSS keyframe would be: up and a touch over, then down into place.
+    const ease = 'cubic-bezier(0.2, 0.9, 0.25, 1)';
+    const a = wrap.animate(
+      [
+        { transform: `translate(${dx}px, ${dy}px) scale(${s})`, easing: ease },
+        { transform: 'translate(0, -10px) scale(1.015)', offset: 0.62, easing: ease },
+        { transform: 'none' },
+      ],
+      { duration: 950, delay: 100, fill: 'backwards' },
+    );
+    return () => a.cancel();
   });
 
   function key(e: KeyboardEvent) {
@@ -42,17 +88,32 @@
 
 <svelte:window onkeydown={key} />
 
-<div class="reveal" role="dialog" aria-modal="true" aria-labelledby="winner-name" style:--c={winner.bg}>
-  <div class="curtain" aria-hidden="true"></div>
-  <div class="body">
-    <p class="prize">{t('prize')}</p>
-    <p class="q">{t('winner')}</p>
-    <h2 class="name" id="winner-name" style:--len={len}>{winner.n}</h2>
-    <p class="quip">{t(quip.key, quip.vars)}</p>
-    <div class="actions">
-      <button type="button" class="again" onclick={onagain}>{once ? t('next') : t('again')}<kbd>Space</kbd></button>
-      <button type="button" class="done" bind:this={done} onclick={ondone}>{t('done')}<kbd>Esc</kbd></button>
+<div class="reveal" class:rise role="dialog" aria-modal="true" aria-labelledby="winner-name">
+  <div class="veil" aria-hidden="true"></div>
+  <div class="light" aria-hidden="true">
+    <div class="cone"></div>
+    <div class="sparks">
+      {#each sparks as s, i (i)}
+        <i style:left="{s.x}%" style:--d="{s.d}s" style:--dl="{s.dl}s" style:--sx="{s.sx}px"></i>
+      {/each}
     </div>
+    <div class="lamp"></div>
+  </div>
+  <div class="wrap" bind:this={wrap} style:--c={winner.bg} style:--len={len}>
+    <div class="card">
+      <div class="stub"><i></i><span>{serial}</span></div>
+      <div class="main">
+        <p class="kick">{t('winner')}</p>
+        <h2 class="name" id="winner-name">{winner.n}</h2>
+        <p class="quip">{t(quip.key, quip.vars)}</p>
+        <div class="actions">
+          <button type="button" class="again" onclick={onagain}>{once ? t('next') : t('again')}<kbd>Space</kbd></button>
+          <button type="button" class="done" bind:this={done} onclick={ondone}>{t('done')}<kbd>Esc</kbd></button>
+        </div>
+      </div>
+      <div class="cover" aria-hidden="true"><b>{t(`go_${mode}`)}</b><small>{serial}</small></div>
+    </div>
+    <p class="stamp">{t('prize')}</p>
   </div>
 </div>
 
@@ -65,117 +126,172 @@
     place-items: center;
     overflow: hidden;
     padding: max(24px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
-    animation: fade 0.25s both;
+  }
+  .veil,
+  .light {
+    position: absolute;
+    inset: 0;
+  }
+  .veil {
+    background: rgba(17, 23, 54, 0.84);
+    animation: fade 0.35s ease both;
   }
   @keyframes fade {
     from {
       opacity: 0;
     }
   }
-  .curtain {
+  .light {
+    pointer-events: none;
+    animation: fade 0.6s ease 0.25s both;
+  }
+  /* The lamp hangs from the canopy; its cone is blurred once, as a still layer. */
+  .lamp {
     position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(90deg, var(--red) 0 clamp(30px, 3.2vw, 48px), var(--cream) clamp(30px, 3.2vw, 48px) clamp(60px, 6.4vw, 96px));
-    animation: drop 0.5s cubic-bezier(0.3, 1.25, 0.5, 1) both;
-  }
-  @keyframes drop {
-    from {
-      translate: 0 -100%;
-    }
-  }
-  .body {
-    position: relative;
-    display: grid;
-    justify-items: center;
-    gap: clamp(12px, 1.6vh, 18px);
-    text-align: center;
-    max-width: min(1100px, 100%);
-  }
-  .body p {
-    margin: 0;
-  }
-  .prize {
-    width: clamp(88px, 9vw, 120px);
-    aspect-ratio: 1;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    padding: 14px;
-    background: radial-gradient(var(--mustard) 54%, var(--red) 55% 63%, var(--mustard) 64%);
+    left: 50%;
+    top: calc(var(--canopy) - 18px + env(safe-area-inset-top, 0px));
+    translate: -50% 0;
+    width: 68px;
+    height: 30px;
+    border-radius: 0 0 34px 34px;
+    background: #2a3768;
     box-shadow:
-      0 0 0 3px var(--navy),
-      0 6px 0 rgba(29, 42, 92, 0.35);
-    font: 400 clamp(13px, 1.2vw, 16px) / 1.05 var(--heavy);
-    color: var(--navy);
-    text-transform: uppercase;
+      0 0 0 2px #3a4a85,
+      0 10px 26px rgba(255, 238, 196, 0.55);
   }
-  .q,
-  .quip {
-    background: var(--paper);
-    color: var(--navy);
-    border: 2px solid var(--navy);
-    border-radius: 999px;
-    padding: 7px 18px;
+  .cone {
+    position: absolute;
+    left: 50%;
+    top: calc(var(--canopy) - 4px + env(safe-area-inset-top, 0px));
+    translate: -50% 0;
+    width: min(820px, 150vw);
+    height: 84%;
+    filter: blur(10px);
   }
-  .q {
-    font: 800 clamp(13px, 1.1vw, 15px) / 1.3 var(--body);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-  .quip {
-    font: 400 clamp(16px, 1.5vw, 20px) / 1.35 var(--heavy);
-    max-width: 36ch;
-    text-wrap: balance;
-  }
-  .name {
-    position: relative;
-    margin: clamp(40px, 6vh, 60px) 0 0;
-    max-width: 100%;
-    overflow-wrap: anywhere;
-    background: var(--paper);
-    color: var(--navy);
-    border: 5px solid var(--navy);
-    border-radius: 12px;
-    padding: 0.12em 0.45em 0.08em;
-    font: 400 min(160px, 15vh, calc(88vw / (var(--len) * 0.62))) / 1.05 var(--display);
-    box-shadow:
-      0 9px 0 var(--red-deep),
-      0 20px 30px rgba(0, 0, 0, 0.28);
-    transform-origin: 50% calc(-1 * clamp(40px, 6vh, 60px));
-    animation: swing 1.5s cubic-bezier(0.3, 1.2, 0.4, 1) 0.25s both;
-  }
-  .name::before {
+  .cone::before {
     content: '';
     position: absolute;
-    left: 16%;
-    right: 16%;
-    top: calc(-1 * clamp(40px, 6vh, 60px) - 5px);
-    height: clamp(40px, 6vh, 60px);
-    border-left: 4px solid var(--navy);
-    border-right: 4px solid var(--navy);
+    inset: 0;
+    clip-path: polygon(45% 0, 55% 0, 86% 100%, 14% 100%);
+    background: linear-gradient(rgba(255, 238, 196, 0.28), rgba(255, 238, 196, 0.07));
   }
-  @keyframes swing {
+  .cone::after {
+    content: '';
+    position: absolute;
+    left: 4%;
+    right: 4%;
+    bottom: -60px;
+    height: 190px;
+    background: radial-gradient(closest-side, rgba(255, 238, 196, 0.2), transparent);
+  }
+  .sparks {
+    position: absolute;
+    left: 50%;
+    top: var(--canopy);
+    translate: -50% 0;
+    width: min(440px, 80vw);
+    height: 76%;
+    overflow: hidden;
+  }
+  .sparks i {
+    position: absolute;
+    top: -10px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #ffd77a;
+    box-shadow: 0 0 6px #ffd77a;
+    opacity: 0;
+    animation: spark var(--d) linear var(--dl) infinite;
+  }
+  @keyframes spark {
     0% {
-      rotate: -28deg;
-      translate: 0 -80px;
       opacity: 0;
+      transform: translate(0, 0);
     }
     15% {
       opacity: 1;
     }
-    42% {
-      rotate: 12deg;
-      translate: 0 0;
-    }
-    62% {
-      rotate: -6deg;
-    }
-    80% {
-      rotate: 3deg;
-    }
     100% {
-      rotate: 0deg;
+      opacity: 0;
+      transform: translate(var(--sx), 72vh);
     }
+  }
+
+  .wrap {
+    position: relative;
+    width: min(620px, 100%);
+    filter: drop-shadow(0 20px 32px rgba(0, 0, 0, 0.45));
+  }
+  .card {
+    --notch: 50%;
+    position: relative;
+    display: grid;
+    grid-template-columns: 118px minmax(0, 1fr);
+    min-height: 340px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--paper);
+    -webkit-mask:
+      radial-gradient(circle 17px at 0 var(--notch), transparent 97%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle 17px at 100% var(--notch), transparent 97%, #000) right / 51% 100% no-repeat;
+    mask:
+      radial-gradient(circle 17px at 0 var(--notch), transparent 97%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle 17px at 100% var(--notch), transparent 97%, #000) right / 51% 100% no-repeat;
+  }
+  .stub {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 18px;
+    background: #f7ead0;
+    border-right: 2px dashed rgba(29, 42, 92, 0.32);
+  }
+  .stub i {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow: 0 0 0 2px var(--navy);
+  }
+  .stub span {
+    writing-mode: vertical-rl;
+    rotate: 180deg;
+    font: 800 13px/1 var(--body);
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .main {
+    container-type: inline-size;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 10px;
+    padding: 26px 34px;
+    text-align: center;
+  }
+  .main p {
+    margin: 0;
+  }
+  .kick {
+    font: 800 13px/1 var(--body);
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--red);
+  }
+  .name {
+    margin: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    font: 400 min(92px, calc(100cqi / (var(--len) * 0.7))) / 1.05 var(--heavy);
+    color: var(--navy);
+  }
+  .quip {
+    max-width: 34ch;
+    font: italic 500 18px/1.35 var(--body);
+    color: var(--ink-2);
+    text-wrap: balance;
   }
   .actions {
     display: flex;
@@ -185,8 +301,8 @@
     margin-top: 10px;
   }
   .actions button {
-    height: 54px;
-    padding: 0 26px;
+    height: 52px;
+    padding: 0 24px;
     border-radius: 10px;
     font: 400 18px/1 var(--heavy);
     display: inline-flex;
@@ -217,10 +333,133 @@
       display: none;
     }
   }
+  /* The red face of the pressed ticket, fading to the prize as it rises. */
+  .cover {
+    display: none;
+  }
+  .rise .cover {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 10px;
+    background: var(--red);
+    color: var(--cream);
+    pointer-events: none;
+    animation: cover 0.5s ease 0.35s both;
+  }
+  @keyframes cover {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+  .cover b {
+    font: 400 96px/1 var(--heavy);
+  }
+  .cover small {
+    font: 700 26px/1 var(--body);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #ffe7a3;
+  }
+  .stamp {
+    position: absolute;
+    right: -28px;
+    top: -34px;
+    width: 108px;
+    height: 108px;
+    margin: 0;
+    padding: 12px;
+    border-radius: 50%;
+    rotate: -14deg;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    font: 400 15px/1.05 var(--display);
+    color: var(--red);
+    background: var(--paper);
+    border: 3px solid var(--red);
+    box-shadow:
+      inset 0 0 0 4px var(--paper),
+      inset 0 0 0 6px var(--red);
+    animation: thump 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) 1.05s both;
+  }
+  @keyframes thump {
+    0% {
+      opacity: 0;
+      scale: 2.6;
+    }
+    70% {
+      opacity: 1;
+      scale: 0.94;
+    }
+    100% {
+      opacity: 1;
+      scale: 1;
+    }
+  }
+  /* A phone: the stub on top, the notches at its perforation. */
+  @media (max-width: 600px) {
+    .card {
+      --notch: 46px;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: 46px auto;
+      min-height: 0;
+    }
+    .stub {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      border-right: 0;
+      border-bottom: 2px dashed rgba(29, 42, 92, 0.32);
+    }
+    .stub i {
+      width: 14px;
+      height: 14px;
+    }
+    .stub span {
+      writing-mode: horizontal-tb;
+      rotate: none;
+      font-size: 11px;
+    }
+    .main {
+      padding: 22px 18px 24px;
+    }
+    .quip {
+      font-size: 16px;
+    }
+    .actions button {
+      height: 48px;
+      padding: 0 20px;
+      font-size: 16px;
+    }
+    .cover b {
+      font-size: 64px;
+    }
+    .cover small {
+      font-size: 16px;
+    }
+    .stamp {
+      right: -6px;
+      top: -26px;
+      width: 84px;
+      height: 84px;
+      padding: 8px;
+      font-size: 12px;
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
-    .curtain,
-    .name {
+    .veil,
+    .light,
+    .stamp {
       animation: none;
+    }
+    .sparks {
+      display: none;
     }
   }
 </style>

@@ -3,6 +3,7 @@
 import '@fontsource/rye/400.css';
 import '@fontsource/alfa-slab-one/400.css';
 import '@fontsource/bitter/500.css';
+import '@fontsource/bitter/500-italic.css';
 import '@fontsource/bitter/700.css';
 import '@fontsource/bitter/800.css';
 import './app.css';
