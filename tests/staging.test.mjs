@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 // Node runs the TypeScript directly (type stripping, Node 24).
 import { contactAngle, jackpotRows, parseNames, pickIndex, raceAt, racePlan, sitOut, sliceAt, wheelSpin } from '../src/lib/staging.ts';
+import { wheelTurns } from '../src/lib/tune.ts';
 import { reelStrip } from '../vendor/ewo/elements/reel-strip.js';
 
 /** A seeded random source, so every run checks the same draws. */
@@ -88,6 +89,67 @@ test('the race’s winner always crosses first, and paddles only forwards', () =
       }
     }
   }
+});
+
+test('the wheel spins for its length, and makes more turns the wilder it is set', () => {
+  const random = seeded(17);
+  for (const seconds of [2, 5, 12, 20]) {
+    const calm = wheelSpin({ theta: 0, n: 8, w: 4, seconds, turns: wheelTurns(seconds, 'gentle'), drama: 'normal', random });
+    const wild = wheelSpin({ theta: 0, n: 8, w: 4, seconds, turns: wheelTurns(seconds, 'wild'), drama: 'normal', random });
+    assert.equal(calm.duration, seconds * 1000);
+    assert.equal(sliceAt(calm.end, 8), 4);
+    assert.equal(sliceAt(wild.end, 8), 4);
+    assert.ok(wild.end > calm.end, `${seconds} s: wild turns further`);
+    assert.ok(calm.end >= 2 * Math.PI * 2, 'at least twice round');
+  }
+  assert.equal(wheelSpin({ theta: 0, n: 8, w: 1, seconds: 10, drama: 'chill', random, reduced: true }).duration, 4000, 'reduced motion runs it quicker');
+});
+
+test('the race keeps its promises at every overtaking and length', () => {
+  const random = seeded(29);
+  for (const overtaking of ['few', 'some', 'many']) {
+    for (const seconds of [4, 8, 30]) {
+      for (let trial = 0; trial < 12; trial++) {
+        const n = 2 + pickIndex(12, random);
+        const w = pickIndex(n, random);
+        const { curves } = racePlan(n, w, DRAMAS[trial % 3], random, overtaking, seconds);
+        assert.equal(raceAt(curves[w], 1), 1);
+        for (let i = 0; i < n; i++) {
+          if (i !== w) assert.ok(raceAt(curves[i], 1) < 1, 'someone else reached the line');
+          let before = 0;
+          for (let t = 0; t <= 1; t += 0.01) {
+            const p = raceAt(curves[i], t);
+            assert.ok(p >= before - 1e-9, 'paddled backwards');
+            before = p;
+          }
+        }
+      }
+    }
+  }
+  // A longer race has more strokes, so the ducks keep their pace.
+  assert.ok(racePlan(4, 0, 'normal', random, 'some', 30).curves[0].K > racePlan(4, 0, 'normal', random, 'some', 4).curves[0].K);
+});
+
+test('more overtaking means more lead changes', () => {
+  const changes = (overtaking) => {
+    const random = seeded(53);
+    let total = 0;
+    for (let race = 0; race < 60; race++) {
+      const { curves } = racePlan(6, race % 6, 'normal', random, overtaking, 8);
+      let leader = -1;
+      for (let t = 0.05; t <= 1; t += 0.02) {
+        const pos = curves.map((c) => raceAt(c, t));
+        const now = pos.indexOf(Math.max(...pos));
+        if (leader >= 0 && now !== leader) total++;
+        leader = now;
+      }
+    }
+    return total / 60;
+  };
+  const few = changes('few');
+  const some = changes('some');
+  const many = changes('many');
+  assert.ok(few < some && some < many, `few ${few}, some ${some}, many ${many}`);
 });
 
 test('the runner-up’s margin shrinks with the drama', () => {

@@ -1,14 +1,29 @@
 <!--
   Settings, the family's way (plans/settings-alignment.md): Folio's ewo-sheet, opened from the bar's
   ewo-settings-button, General first: the language and the sounds. Randomiser is light only, so
-  there's no theme (as in Skibbo, whose Settings.svelte this follows).
+  there's no theme (as in Skibbo, whose Settings.svelte this follows). Then Machines: how each one
+  runs, opened on the machine in use; the length plaque under Drama opens the sheet right there.
 -->
 <script lang="ts">
   import { themeShift } from '../../vendor/ewo/elements/theme-shift.js';
   import { i18n, setLanguage, systemLang, t, type LangChoice } from '../lib/i18n.svelte';
   import { setSound, sound } from '../lib/sound.svelte';
+  import { app, type Mode } from '../lib/state.svelte';
+  import Machines from './Machines.svelte';
 
-  let { open = $bindable(false) }: { open?: boolean } = $props();
+  let { open = $bindable(false), jump = $bindable(false) }: { open?: boolean; /** Open at Machines. */ jump?: boolean } = $props();
+
+  let machine = $state<Mode>(app.mode);
+  let machinesEl: HTMLElement;
+
+  // Each opening starts on the machine in use; from the plaque, scrolled to Machines.
+  $effect(() => {
+    if (!open) return;
+    machine = app.mode;
+    if (!jump) return;
+    jump = false;
+    requestAnimationFrame(() => machinesEl?.scrollIntoView({ block: 'start' }));
+  });
 
   function pickLanguage(next: LangChoice) {
     if (next === i18n.choice) return;
@@ -35,6 +50,8 @@
       <ewo-switch checked={sound.on} aria-label={t('sounds')} onchange={(e) => setSound(e.detail.checked)}></ewo-switch>
     </div>
   </section>
+  <div class="rule" bind:this={machinesEl}></div>
+  <Machines bind:machine />
 </ewo-sheet>
 
 <style>
@@ -62,6 +79,12 @@
     flex-direction: column;
     gap: 2px;
     font: 800 16px/1.2 var(--body);
+  }
+  .rule {
+    height: 1px;
+    margin: 8px 0 12px;
+    background: var(--line);
+    scroll-margin-top: 8px;
   }
   .name small {
     font: 500 13px/1.35 var(--body);

@@ -1,16 +1,23 @@
 <!--
   The duck race from the pond stall: a lane per name in a wooden trough, the names on little tags,
   a commentary board above. Every duck paddles in strokes towards a finish staging.ts planned
-  around the winner (racePlan), so the lead changes by itself and the board calls it. Only the
-  ducks' transforms move.
+  around the winner (racePlan), so the lead changes by itself and the board calls it; how long the
+  race runs and how much they overtake comes from Settings → Machines. Only the ducks' transforms
+  move.
 -->
 <script lang="ts">
   import { t, type Key } from '../lib/i18n.svelte';
-  import { raceAt, raceDuration, racePlan, type Drama } from '../lib/staging';
+  import { raceAt, racePlan, type Drama, type Overtaking } from '../lib/staging';
   import type { Person } from '../lib/state.svelte';
   import { sfx } from '../lib/sound.svelte';
 
-  let { people, drama, reduced, random }: { people: Person[]; drama: Drama; reduced: boolean; random: () => number } = $props();
+  let {
+    people,
+    drama,
+    tune,
+    reduced,
+    random,
+  }: { people: Person[]; drama: Drama; tune: { seconds: number; overtaking: Overtaking }; reduced: boolean; random: () => number } = $props();
 
   type Line = { key: Key; vars?: Record<string, string> };
 
@@ -55,7 +62,7 @@
   export async function run(w: number): Promise<{ key: Key; vars?: Record<string, string> }> {
     const n = people.length;
     const names = people.map((p) => p.n);
-    const { curves, runnerUp } = racePlan(n, w, drama, random);
+    const { curves, runnerUp } = racePlan(n, w, drama, random, tune.overtaking, tune.seconds);
     won = -1;
     for (const d of ducks) if (d) d.style.transform = '';
     if (drama !== 'chill' && !reduced) {
@@ -71,7 +78,7 @@
     } else sfx.quack();
     racing = true;
     say({ key: 'r_off' });
-    const T = raceDuration(drama, reduced);
+    const T = tune.seconds * 1000 * (reduced ? 0.4 : 1);
     const track = box.querySelector('.track') as HTMLElement;
     const span = Math.max(40, track.clientWidth - (ducks[0]?.offsetWidth ?? 50) - 2);
     const margin = 1 - curves[runnerUp].fin;

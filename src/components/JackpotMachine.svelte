@@ -1,7 +1,8 @@
 <!--
   The jackpot: Folio's shared reel (<ewo-slot-reel>, the same one Aale Spiele's draw runs on) in a
   red-lacquer cabinet with brass, a ring of bulbs and a lever. Three rows show, the payline in the
-  middle. A spin runs a strip from the name on show to the winner (Folio's reelStrip); on Max it
+  middle. A spin runs a strip from the name on show to the winner (Folio's reelStrip), as long and as
+  fast as Settings → Machines says (tune.ts); on Max it
   stops one short on the near miss, strains, and clicks over. The rows are written straight into
   the reel (the element moves them), not through Svelte.
 -->
@@ -13,8 +14,16 @@
   import { jackpotRows, type Drama } from '../lib/staging';
   import { poolKey, type Person } from '../lib/state.svelte';
   import { sfx } from '../lib/sound.svelte';
+  import { reelSteps, type Pace } from '../lib/tune';
 
-  let { people, drama, reduced, random, onpull }: { people: Person[]; drama: Drama; reduced: boolean; random: () => number; onpull: () => void } = $props();
+  let {
+    people,
+    drama,
+    tune,
+    reduced,
+    random,
+    onpull,
+  }: { people: Person[]; drama: Drama; tune: { seconds: number; pace: Pace }; reduced: boolean; random: () => number; onpull: () => void } = $props();
 
   let reel: EwoSlotReel;
   let cabinet: HTMLElement;
@@ -125,13 +134,13 @@
     pull();
     const n = people.length;
     const tease = drama === 'max' && !reduced && n > 1;
-    const strip = reelStrip(n, w, { chill: 12, normal: 18, max: 22 }[drama] + Math.floor(random() * 4), current, random);
+    const strip = reelStrip(n, w, reelSteps(tune.seconds, tune.pace) + Math.floor(random() * 4), current, random);
     const rows = jackpotRows(n, strip);
     reel.replaceChildren(...rows.map((i) => cell(people[i])));
     win = false;
     live = true;
     sub = { key: 'spinning' };
-    const duration = { chill: 1700, normal: 2600, max: 3000 }[drama];
+    const duration = tune.seconds * 1000;
     const decoy = tease ? strip[strip.length - 2] : -1;
     let timer = 0;
     if (tease) {

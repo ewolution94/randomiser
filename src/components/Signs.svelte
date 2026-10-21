@@ -1,10 +1,12 @@
 <!--
   The painted signs beside the machine (layout C, "Big screen"): the three modes down the left (keys
-  1, 2, 3), Drama down the right. On a phone they become two rows under the bar. The picked sign is
-  red and leans a little; while a draw runs they stay still.
+  1, 2, 3), Drama down the right, and under Drama the machine's length (a stopwatch plaque that
+  opens Settings → Machines). On a phone they become two rows under the bar, without the plaque. The
+  picked sign is red and leans a little; while a draw runs they stay still.
 -->
 <script lang="ts">
   import { t } from '../lib/i18n.svelte';
+  import { MODE_ICON, WATCH_ICON } from '../lib/icons';
   import { DRAMAS, MODES, type Mode } from '../lib/state.svelte';
   import type { Drama } from '../lib/staging';
 
@@ -13,15 +15,21 @@
     mode,
     drama,
     disabled,
+    length = '',
     onmode,
     ondrama,
-  }: { kind: 'modes' | 'drama'; mode: Mode; drama: Drama; disabled: boolean; onmode: (m: Mode) => void; ondrama: (d: Drama) => void } = $props();
-
-  const ICON: Record<Mode, string> = {
-    wheel: '<circle cx="12" cy="13" r="8"/><path d="M12 5v16M4 13h16M6.3 7.3l11.4 11.4M17.7 7.3 6.3 18.7"/><path d="M12 1.5 10.5 4h3z"/>',
-    slots: '<rect x="3" y="5" width="15" height="15" rx="2"/><path d="M3 12.5h15"/><path d="M21 8v6M21 14h-3"/><circle cx="21" cy="7" r="1.5"/>',
-    race: '<path d="M4 14c0-3 2.5-4.5 6-4.3l4 .3c.5-2.5 1.5-4 3.5-4s3 1.5 3 3.5c0 1-.5 2-1.5 2.5 1.5 1 2 3 .5 4.5-2 2-6 2.5-9.5 2.3S4 17.5 4 14z"/><path d="M2 20c2 1 4 1 6 0s4-1 6 0 4 1 6 0"/>',
-  };
+    ontune,
+  }: {
+    kind: 'modes' | 'drama';
+    mode: Mode;
+    drama: Drama;
+    disabled: boolean;
+    /** The machine's length as shown ("5 s"), for the plaque under Drama. */
+    length?: string;
+    onmode: (m: Mode) => void;
+    ondrama: (d: Drama) => void;
+    ontune?: () => void;
+  } = $props();
 </script>
 
 {#if kind === 'modes'}
@@ -29,7 +37,7 @@
     <span class="cap" aria-hidden="true">{t('mode')}</span>
     {#each MODES as m, i (m)}
       <button type="button" class="sign" aria-pressed={mode === m} {disabled} onclick={() => onmode(m)}>
-        <svg viewBox="0 0 24 24" aria-hidden="true">{@html ICON[m]}</svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">{@html MODE_ICON[m]}</svg>
         <span>{t(m)}</span>
         <small aria-hidden="true">{i + 1}</small>
       </button>
@@ -43,6 +51,12 @@
         <span>{t(d)}</span>
       </button>
     {/each}
+    {#if ontune && length}
+      <button type="button" class="tune" aria-label={t('tuneLabel', { machine: t(mode), s: length })} onclick={ontune}>
+        <svg viewBox="0 0 24 24" aria-hidden="true">{@html WATCH_ICON}</svg>
+        <span>{length}</span>
+      </button>
+    {/if}
   </div>
 {/if}
 
@@ -101,6 +115,40 @@
   .sign:disabled {
     cursor: default;
   }
+  /* The length plaque: quieter than the signs, a brass-rimmed tag under them. */
+  .tune {
+    margin-top: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px 6px 9px;
+    border-radius: 999px;
+    border: 1.5px solid var(--line);
+    background: transparent;
+    color: var(--ink-2);
+    font: 800 13px/1 var(--body);
+    font-variant-numeric: tabular-nums;
+    transition:
+      border-color 0.2s,
+      color 0.2s,
+      background-color 0.2s;
+  }
+  .tune svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  @media (hover: hover) {
+    .tune:hover {
+      border-color: var(--navy);
+      color: var(--navy);
+      background: var(--paper);
+    }
+  }
   @media (hover: hover) {
     .sign:not(:disabled):hover {
       scale: 1.04;
@@ -116,7 +164,8 @@
       width: 100%;
     }
     .cap,
-    .sign small {
+    .sign small,
+    .tune {
       display: none;
     }
     .sign {

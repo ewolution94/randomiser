@@ -43,11 +43,12 @@ export type WheelSpin = {
 export const contactAngle = (n: number) => Math.min(0.075, (TAU / n) * 0.3);
 
 /**
- * A spin from `theta` that rests in slice `w`. dir: 1 clockwise, -1 the other way (a flick
- * backwards); power: 1 for a tap, up to 3 for a hard flick (more turns). On Max drama it first stops
- * one slice short, against the peg, then creeps over; the result is the same either way.
+ * A spin from `theta` that rests in slice `w`, for `seconds` (Settings, tune.ts) and at least
+ * `turns` times round. dir: 1 clockwise, -1 the other way; power: 1 for a tap, up to 3 for a hard
+ * flick (more turns). On Max drama it first stops one slice short, against the peg, then creeps
+ * over; the result is the same either way.
  */
-export function wheelSpin(o: { theta: number; n: number; w: number; dir?: number; power?: number; drama: Drama; random: Random; reduced?: boolean }): WheelSpin {
+export function wheelSpin(o: { theta: number; n: number; w: number; dir?: number; power?: number; seconds?: number; turns?: number; drama: Drama; random: Random; reduced?: boolean }): WheelSpin {
   const { theta, n, w, drama, random } = o;
   const dir = o.dir && o.dir < 0 ? -1 : 1;
   const power = Math.max(1, Math.min(3, o.power ?? 1));
@@ -57,11 +58,11 @@ export function wheelSpin(o: { theta: number; n: number; w: number; dir?: number
   // Where in the slice it stops: anywhere but the edges, or just inside the edge it entered by.
   const f = fake ? (dir > 0 ? 0.88 : 0.12) : 0.18 + random() * 0.64;
   const base = -(w + f) * seg;
-  const turns = { chill: 3, normal: 5, max: 6 }[drama] + random() + (power - 1);
+  const turns = Math.max(1, o.turns ?? 5) + random() + (power - 1);
   const k = dir > 0 ? Math.ceil((theta + turns * TAU - base) / TAU) : Math.floor((theta - turns * TAU - base) / TAU);
   const end = base + k * TAU;
   const pre = fake ? end - dir * (0.12 * seg + 0.45 * C) : end;
-  const duration = { chill: 2800, normal: 5000, max: 6000 }[drama] * (o.reduced ? 0.4 : 1);
+  const duration = (o.seconds ?? 5) * 1000 * (o.reduced ? 0.4 : 1);
   const decoy = fake ? (w + (dir > 0 ? 1 : n - 1)) % n : -1;
   return { end, pre, fake, duration, decoy };
 }
@@ -71,24 +72,41 @@ export function wheelSpin(o: { theta: number; n: number; w: number; dir?: number
 export type Curve = { K: number; knots: number[]; fin: number };
 export type RacePlan = { curves: Curve[]; runnerUp: number };
 
+export type Overtaking = 'few' | 'some' | 'many';
+
+/**
+ * How the strokes vary, how the winner's strength shifts over the race (surge > 0: late, < 0: early;
+ * the runner-up the other way) and how close the rest finish. Over 200 seeded races of six: few
+ * gives about one lead change, early; some about three (the race as it was); many four to five,
+ * two of them in the last stretch.
+ */
+const OVERTAKING: Record<Overtaking, { base: number; spread: number; surge: number; pack: [number, number] }> = {
+  few: { base: 0.5, spread: 0.7, surge: -0.4, pack: [0.55, 0.25] },
+  some: { base: 0.35, spread: 1, surge: 0.6, pack: [0.62, 0.27] },
+  many: { base: 0.08, spread: 2.4, surge: 0.6, pack: [0.82, 0.08] },
+};
+
 /**
  * Each duck paddles in strokes towards its own finishing point (1 is the line). The winner's strokes
- * grow towards the end and the runner-up's fade, so the lead changes by itself; the runner-up's
- * margin shrinks with the drama (a beak on Max).
+ * grow towards the end and the runner-up's fade, so the lead changes by itself; how much is
+ * `overtaking` (Settings), and the runner-up's margin shrinks with the drama (a beak on Max). A
+ * longer race (`seconds`) has more strokes, so the ducks keep their pace.
  */
-export function racePlan(n: number, w: number, drama: Drama, random: Random): RacePlan {
+export function racePlan(n: number, w: number, drama: Drama, random: Random, overtaking: Overtaking = 'some', seconds = 8): RacePlan {
   let r = pickIndex(n - 1, random);
   if (r >= w) r++;
+  const o = OVERTAKING[overtaking];
+  const strokes = Math.max(5, Math.round(seconds * 0.9));
   const curves: Curve[] = [];
   for (let i = 0; i < n; i++) {
-    const K = 6 + pickIndex(5, random);
-    const fin = i === w ? 1 : i === r ? { chill: 0.9, normal: 0.955, max: 0.982 }[drama] + random() * 0.01 : 0.62 + random() * 0.27;
+    const K = strokes + pickIndex(4, random);
+    const fin = i === w ? 1 : i === r ? { chill: 0.9, normal: 0.955, max: 0.982 }[drama] + random() * 0.01 : o.pack[0] + random() * o.pack[1];
     const inc: number[] = [];
     for (let k = 0; k < K; k++) {
-      let x = 0.35 + random();
+      let x = o.base + random() * o.spread;
       const at = (k + 0.5) / K;
-      if (i === w) x *= 0.75 + 0.6 * at;
-      if (i === r) x *= 1.3 - 0.6 * at;
+      if (i === w) x *= 1 - o.surge / 2 + o.surge * at;
+      if (i === r) x *= 1 + o.surge / 2 - o.surge * at;
       inc.push(x);
     }
     const sum = inc.reduce((a, b) => a + b, 0);
@@ -112,9 +130,6 @@ export function raceAt(c: Curve, t: number): number {
   const stroke = u - (Math.sin(TAU * u) / TAU) * 0.7;
   return c.knots[k] + (c.knots[k + 1] - c.knots[k]) * stroke;
 }
-
-/** The race's length in ms by drama. */
-export const raceDuration = (drama: Drama, reduced = false) => ({ chill: 4500, normal: 7500, max: 10000 })[drama] * (reduced ? 0.4 : 1);
 
 // ---------------------------------------------------------------- the jackpot
 

@@ -34,11 +34,13 @@ const W = {
 export type WheelHooks = {
   busy: () => boolean;
   drama: () => Drama;
+  /** How long a spin runs and how many turns it makes at least (Settings → Machines, tune.ts). */
+  tune: () => { seconds: number; turns: number };
   reduced: () => boolean;
   random: () => number;
   tick: () => void;
   roll: (seconds: number) => void;
-  /** A flick or a tap on the wheel: dir 1 or -1, power 1 to 3. */
+  /** A flick or a tap on the wheel: dir 1 or -1 (0 for a tap: the way Settings says), power 1 to 3. */
   flick: (dir: number, power: number) => void;
 };
 
@@ -136,7 +138,7 @@ export class WheelEngine {
     this.start();
     return new Promise((resolve) => {
       const n = this.names.length;
-      const s = wheelSpin({ theta: this.theta, n, w, dir, power, drama: this.hooks.drama(), random: this.hooks.random, reduced: this.hooks.reduced() });
+      const s = wheelSpin({ theta: this.theta, n, w, dir, power, ...this.hooks.tune(), drama: this.hooks.drama(), random: this.hooks.random, reduced: this.hooks.reduced() });
       this.anim = { start: this.theta, pre: s.pre, end: s.end, t0: performance.now(), T: s.duration, fake: s.fake, hold: 1100, creep: 1300, dir: dir < 0 ? -1 : 1, C: contactAngle(n), w, decoy: s.decoy, rolled: false, resolve };
     });
   }
@@ -501,7 +503,7 @@ export class WheelEngine {
     this.drag = null;
     if (e.type === 'pointercancel') return;
     if (Math.abs(v) > 4) this.hooks.flick(Math.sign(v), Math.min(3, Math.abs(v) / 8));
-    else if (tap) this.hooks.flick(1, 1);
+    else if (tap) this.hooks.flick(0, 1);
   };
 }
 

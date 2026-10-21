@@ -20,10 +20,11 @@
   import Ticket from './components/Ticket.svelte';
   import WheelMachine from './components/WheelMachine.svelte';
   import { loadCensus } from './lib/census';
-  import { t, type Key } from './lib/i18n.svelte';
+  import { secs, t, type Key } from './lib/i18n.svelte';
   import { pickIndex, sitOut, type Drama } from './lib/staging';
   import { MODES, app, pool, save, type Mode, type Person } from './lib/state.svelte';
   import { sfx, sound, unlock } from './lib/sound.svelte';
+  import { wheelTurns } from './lib/tune';
 
   /** The browser's crypto source: fair enough for a draw. */
   function random() {
@@ -41,6 +42,7 @@
   let busy = $state(false);
   let drawerOpen = $state(false);
   let settingsOpen = $state(false);
+  let settingsJump = $state(false);
   let won: { winner: Person; quip: { key: Key; vars?: Record<string, string> }; no: number; from: DOMRect | null } | null = $state(null);
   let toastText = $state('');
   let toastTimer = 0;
@@ -67,6 +69,7 @@
   const wheelHooks = {
     busy: () => busy || Boolean(won),
     drama: () => app.drama,
+    tune: () => ({ seconds: app.tune.wheel.seconds, turns: wheelTurns(app.tune.wheel.seconds, app.tune.wheel.pace) }),
     reduced: () => reduced,
     random,
     tick: () => sfx.tick(0.9 + random() * 0.2),
@@ -96,7 +99,10 @@
     let quip: { key: Key; vars?: Record<string, string> };
     try {
       if (mode === 'wheel') {
-        const r = await wheel.spin(w, o.dir ?? 1, o.power ?? 1);
+        // A flick goes the way it was flicked; the ticket, Space and a tap go the way Settings says.
+        const turn = app.tune.wheel.turn;
+        const dir = o.dir || (turn === 'ccw' ? -1 : turn === 'either' && random() < 0.5 ? -1 : 1);
+        const r = await wheel.spin(w, dir, o.power ?? 1);
         quip = r.decoy >= 0 ? { key: 'q_wheel_near', vars: { name: p[r.decoy].n } } : { key: (['q_wheel_1', 'q_wheel_2', 'q_wheel_3'] as Key[])[pickIndex(3, random)] };
       } else if (mode === 'slots') {
         const r = await jackpot.spin(w);
@@ -147,6 +153,12 @@
     save();
   }
 
+  /** The length plaque under Drama: Settings, opened at Machines on the machine in use. */
+  function openTune() {
+    settingsJump = true;
+    settingsOpen = true;
+  }
+
   function setDrama(d: Drama) {
     app.drama = d;
     save();
@@ -191,14 +203,14 @@
           <WheelMachine bind:this={wheel} {people} active={app.mode === 'wheel'} hooks={wheelHooks} />
         </div>
         <div class="slot" hidden={app.mode !== 'slots'}>
-          <JackpotMachine bind:this={jackpot} {people} drama={app.drama} {reduced} {random} onpull={() => void go()} />
+          <JackpotMachine bind:this={jackpot} {people} drama={app.drama} tune={app.tune.slots} {reduced} {random} onpull={() => void go()} />
         </div>
         <div class="slot" hidden={app.mode !== 'race'}>
-          <RaceMachine bind:this={race} {people} drama={app.drama} {reduced} {random} />
+          <RaceMachine bind:this={race} {people} drama={app.drama} tune={app.tune.race} {reduced} {random} />
         </div>
     </div>
     <div class="side right">
-      <Signs kind="drama" mode={app.mode} drama={app.drama} disabled={busy} onmode={setMode} ondrama={setDrama} />
+      <Signs kind="drama" mode={app.mode} drama={app.drama} disabled={busy} length={secs(app.tune[app.mode].seconds)} onmode={setMode} ondrama={setDrama} ontune={openTune} />
     </div>
   </div>
   <footer class="foot" bind:this={footEl}>
@@ -208,7 +220,7 @@
 </div>
 
 <Drawer bind:open={drawerOpen} {busy} ontoast={toast} />
-<Settings bind:open={settingsOpen} />
+<Settings bind:open={settingsOpen} bind:jump={settingsJump} />
 {#if won}
   <Reveal winner={won.winner} quip={won.quip} once={app.once} mode={app.mode} ticket={won.no} from={won.from} {reduced} onagain={() => close(true)} ondone={() => close(false)} />
 {/if}

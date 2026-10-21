@@ -6,9 +6,13 @@ The afternoon meeting's randomiser, drawn at the fair: a painted wheel, a jackpo
   pointer that clicks over them; tap it, flick it, or press the ticket. The **jackpot** is a
   red-lacquer cabinet with a reel of names and a lever. The **duck race** runs one duck per name
   down the pond, with a board calling the lead changes.
-- **Drama.** Chill (about three seconds, no tricks), Normal, or Max: the wheel stops against the
-  neighbour's nail and creeps over, the reel stops one short and clicks on, the race is won by a
-  beak, and a clown horn joins the Tusch.
+- **Drama** decides the tricks: Chill (none), Normal (a drumroll, the race's 3-2-1 countdown), or
+  Max: the wheel stops against the neighbour's nail and creeps over, the reel stops one short and
+  clicks on, the race is won by a beak, and a clown horn joins the Tusch.
+- **Machines** (Settings) decide how long and how wild each one runs: the wheel's length (2 to 20 s),
+  speed and direction; the jackpot's length (1 to 10 s) and speed; the race's length (4 to 30 s) and
+  how much the ducks overtake. The defaults are the old Normal. On the laptop, the stopwatch plaque
+  under Drama shows the length and opens them.
 - **The names** live in a drawer behind "8 in the draw": add them comma-separated or paste a list,
   tap one to leave it out today, × to remove it. **Everyone once** lets the winners sit out until
   all have had a turn. **The last draws** are listed with their time, so next week's meeting sees
@@ -49,7 +53,7 @@ and ends on the winner.
 npm install
 npm run dev          # http://localhost:6920 (6900 is the NAS port)
 npm run check        # svelte-check / TypeScript
-npm test             # unit tests: the draw's staging, the Census forwarder (Node 24+)
+npm test             # unit tests: the draw's staging, the machine settings, the Census forwarder (Node 24+)
 npm run build && npm start   # production server on :8080 (or --port 6921)
 ```
 
@@ -76,6 +80,7 @@ This mirrors Aale Spiele and Cantina:
 server/server.mjs              static files + security headers, no dependencies
 server/census.mjs              forwards /_e.js and /_e to Census (visit counts)
 src/lib/staging.ts             the draw and how each mode stages it (pure, tested)
+src/lib/tune.ts                how each machine runs: lengths, speeds, defaults (pure, tested)
 src/lib/wheel.ts               the wheel on its canvas
 src/lib/state.svelte.ts        names, mode, drama, the last draws: kept on the device
 src/lib/sound.svelte.ts        the fair's band in Web Audio
