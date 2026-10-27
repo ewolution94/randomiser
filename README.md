@@ -29,8 +29,11 @@ The afternoon meeting's randomiser, drawn at the fair: a painted wheel, a jackpo
 ## How it works
 
 There's no API and no state on the server. `src/lib/staging.ts` holds the draw: the winner is picked
-first, uniformly, from the browser's crypto random source, and each mode only stages its way to a
-result that is already fixed. Its pure functions are tested (`tests/staging.test.mjs`): the wheel
+first from the browser's crypto random source (`fairIndex`: 32-bit words, exactly uniform, a word past
+the last full multiple of the list's length drawn again instead of scaled), and each mode only stages
+its way to a result that is already fixed. The flick, the length and the Drama change the show, never
+who wins. Every draw goes into the last draws with its time and the ticket number counts up, so a
+re-draw is in plain sight; there's nothing to clear them in the app. Its pure functions are tested (`tests/staging.test.mjs`): the wheel
 always rests in the winner's slice, the near miss shows the neighbour, the race's winner always
 crosses first and the others never paddle backwards, the jackpot's strip starts on the name on show
 and ends on the winner.
@@ -54,6 +57,7 @@ npm install
 npm run dev          # http://localhost:6920 (6900 is the NAS port)
 npm run check        # svelte-check / TypeScript
 npm test             # unit tests: the draw's staging, the machine settings, the Census forwarder (Node 24+)
+npm run test:sim     # local only: a million draws per list size on the real crypto source, checked for evenness
 npm run build && npm start   # production server on :8080 (or --port 6921)
 ```
 

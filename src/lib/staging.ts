@@ -9,10 +9,24 @@ export type Random = () => number;
 
 const TAU = Math.PI * 2;
 
-/** A uniform index into `n` from `random()` in [0, 1). */
+/** An index into `n` from `random()` in [0, 1), for the staging's own choices (the show, not the draw). */
 export function pickIndex(n: number, random: Random): number {
   if (n <= 0) return -1;
   return Math.min(n - 1, Math.floor(random() * n));
+}
+
+/**
+ * The draw itself: an index into `n`, exactly uniform, from 32-bit random words (the browser's crypto
+ * in the app). Scaling or `% n` on a word favours the low indices by up to n in 2^32; instead, a word
+ * at or above the largest multiple of n is drawn again (Würfle's solo dice do the same), so every
+ * index has exactly the same number of words. For 30 names that redraw happens 7 times in a billion.
+ */
+export function fairIndex(n: number, word: () => number): number {
+  if (n <= 0) return -1;
+  const limit = Math.floor(0x100000000 / n) * n;
+  let w = word() >>> 0;
+  while (w >= limit) w = word() >>> 0;
+  return w % n;
 }
 
 // ---------------------------------------------------------------- the wheel

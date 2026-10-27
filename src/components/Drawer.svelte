@@ -122,7 +122,7 @@
   </div>
   <h3 class="cap">{t('last')}</h3>
   <ul class="history">
-    {#each app.history.slice(0, 8) as d (d.t)}
+    {#each app.history as d (d.t)}
       <li style:--c={paint(d.c)[0]}>
         <i aria-hidden="true"></i>
         <span>{d.n} · {t(d.mode)}</span>

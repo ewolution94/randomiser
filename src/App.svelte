@@ -21,17 +21,19 @@
   import WheelMachine from './components/WheelMachine.svelte';
   import { loadCensus } from './lib/census';
   import { secs, t, type Key } from './lib/i18n.svelte';
-  import { pickIndex, sitOut, type Drama } from './lib/staging';
+  import { fairIndex, pickIndex, sitOut, type Drama } from './lib/staging';
   import { MODES, app, pool, save, type Mode, type Person } from './lib/state.svelte';
   import { sfx, sound, unlock } from './lib/sound.svelte';
   import { wheelTurns } from './lib/tune';
 
-  /** The browser's crypto source: fair enough for a draw. */
-  function random() {
+  /** A 32-bit word from the browser's crypto source (a CSPRNG: unpredictable, not seeded by anyone). */
+  function word() {
     const a = new Uint32Array(1);
     crypto.getRandomValues(a);
-    return a[0] / 4294967296;
+    return a[0];
   }
+  /** The same source as a number in [0, 1), for the staging's show (where the wheel stops in the slice, the quips). */
+  const random = () => word() / 4294967296;
 
   const people = $derived(pool());
   const ready = $derived(people.length >= 2 || (app.once && people.length === 1));
@@ -94,7 +96,8 @@
     app.ticket++;
     save();
     busy = true;
-    const w = pickIndex(p.length, random);
+    // Who wins is drawn here, before anything moves, and exactly uniformly; the machines only stage it.
+    const w = fairIndex(p.length, word);
     const mode = app.mode;
     let quip: { key: Key; vars?: Record<string, string> };
     try {

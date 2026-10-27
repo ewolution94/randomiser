@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 // Node runs the TypeScript directly (type stripping, Node 24).
-import { contactAngle, jackpotRows, parseNames, pickIndex, raceAt, racePlan, sitOut, sliceAt, wheelSpin } from '../src/lib/staging.ts';
+import { contactAngle, fairIndex, jackpotRows, parseNames, pickIndex, raceAt, racePlan, sitOut, sliceAt, wheelSpin } from '../src/lib/staging.ts';
 import { wheelTurns } from '../src/lib/tune.ts';
 import { reelStrip } from '../vendor/ewo/elements/reel-strip.js';
 
@@ -27,6 +27,46 @@ test('the draw reaches every name and nothing else', () => {
   assert.equal(seen.size, 9);
   assert.equal(pickIndex(0, random), -1);
   assert.equal(pickIndex(1, () => 0.999), 0);
+});
+
+/** Seeded 32-bit words (xorshift32), so the statistics below are the same on every run. */
+function words(seed = 2463534242) {
+  let x = seed >>> 0;
+  return () => {
+    x ^= x << 13;
+    x >>>= 0;
+    x ^= x >>> 17;
+    x ^= x << 5;
+    return x >>> 0;
+  };
+}
+
+test('the draw is exactly uniform: every name gets the same number of words, the rest are drawn again', () => {
+  for (let n = 1; n <= 30; n++) {
+    const limit = Math.floor(2 ** 32 / n) * n;
+    assert.equal(limit % n, 0, 'every index owns limit / n words');
+    assert.ok(2 ** 32 - limit < n, 'fewer than n words are ever redrawn');
+    // The last word kept and the first one redrawn.
+    const seq = (...ws) => () => ws.shift();
+    assert.equal(fairIndex(n, seq(limit - 1)), (limit - 1) % n);
+    if (limit < 2 ** 32) assert.equal(fairIndex(n, seq(limit, 2 ** 32 - 1, 5)), 5 % n, 'a word at or past the limit is drawn again');
+  }
+  assert.equal(fairIndex(0, () => 0), -1);
+  assert.equal(fairIndex(1, () => 123456), 0);
+});
+
+test('the draw spreads evenly over the names (chi-square on seeded words)', () => {
+  for (const n of [2, 3, 7, 30]) {
+    const word = words(n * 7919);
+    const draws = 60_000 * n;
+    const count = new Array(n).fill(0);
+    for (let i = 0; i < draws; i++) count[fairIndex(n, word)]++;
+    const e = draws / n;
+    const chi = count.reduce((sum, c) => sum + (c - e) ** 2 / e, 0);
+    // Far above the 99.99th percentile of chi-square with n - 1 degrees of freedom only if it's skewed.
+    const bound = n - 1 + 8 * Math.sqrt(2 * (n - 1)) + 10;
+    assert.ok(chi < bound, `n ${n}: chi ${chi.toFixed(1)} over ${bound.toFixed(1)}`);
+  }
 });
 
 test('the wheel always comes to rest in the winner’s slice', () => {
