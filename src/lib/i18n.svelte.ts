@@ -1,6 +1,9 @@
-// German and English, following the browser until a language is picked in Settings. The choice is
-// kept under `ewo:lang` (the family's key; System removes it); public/boot.js applies it before
-// first paint. From Skibbo's i18n.svelte.ts.
+// German and English: Dashboard's default, else the browser's, until a language is picked in
+// Settings (src/lib/defaults.ts). The choice is kept under `ewo:lang` (the family's key; Default
+// removes it); public/boot.js applies it before first paint. From Skibbo's i18n.svelte.ts.
+
+import { readConfig } from '../../vendor/ewo/elements/config-client.js';
+import { languageFor } from './defaults';
 
 export type Lang = 'de' | 'en';
 export type LangChoice = Lang | 'system';
@@ -21,8 +24,11 @@ export function systemLang(): Lang {
   return (navigator.language ?? '').toLowerCase().startsWith('de') ? 'de' : 'en';
 }
 
+/** The language a choice shows: this device's own, else Dashboard's default, else the browser's. */
+export const langFor = (choice: LangChoice): Lang => languageFor(choice, readConfig().lang, systemLang());
+
 const choice = storedChoice();
-export const i18n = $state({ choice, lang: choice === 'system' ? systemLang() : choice });
+export const i18n = $state({ choice, lang: langFor(choice) });
 
 /** Applies a choice; Settings wraps it in Folio's themeShift when the language on screen changes. */
 export function setLanguage(next: LangChoice) {
@@ -33,13 +39,13 @@ export function setLanguage(next: LangChoice) {
   } catch {
     // not kept, still applied
   }
-  i18n.lang = next === 'system' ? systemLang() : next;
+  i18n.lang = langFor(next);
   document.documentElement.lang = i18n.lang;
 }
 
 addEventListener('languagechange', () => {
   if (i18n.choice === 'system') {
-    i18n.lang = systemLang();
+    i18n.lang = langFor('system');
     document.documentElement.lang = i18n.lang;
   }
 });
@@ -124,7 +130,7 @@ const STRINGS = {
     settings: 'Einstellungen',
     general: 'Allgemein',
     language: 'Sprache',
-    langSystem: 'System',
+    langSystem: 'Standard',
     sounds: 'Klänge',
     soundsHint: 'Ticks, Tusch und Hupe',
     horn: 'Hupe',
@@ -238,7 +244,7 @@ const STRINGS = {
     settings: 'Settings',
     general: 'General',
     language: 'Language',
-    langSystem: 'System',
+    langSystem: 'Default',
     sounds: 'Sounds',
     soundsHint: 'The ticks, the Tusch, the horn',
     horn: 'Clown horn',

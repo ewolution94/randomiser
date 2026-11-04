@@ -6,7 +6,7 @@
 -->
 <script lang="ts">
   import { themeShift } from '../../vendor/ewo/elements/theme-shift.js';
-  import { i18n, setLanguage, systemLang, t, type LangChoice } from '../lib/i18n.svelte';
+  import { i18n, langFor, setLanguage, t, type LangChoice } from '../lib/i18n.svelte';
   import { setSound, sound } from '../lib/sound.svelte';
   import { app, type Mode } from '../lib/state.svelte';
   import Machines from './Machines.svelte';
@@ -27,7 +27,7 @@
 
   function pickLanguage(next: LangChoice) {
     if (next === i18n.choice) return;
-    const shows = next === 'system' ? systemLang() : next;
+    const shows = langFor(next);
     if (shows === i18n.lang) setLanguage(next);
     else themeShift(() => setLanguage(next));
   }

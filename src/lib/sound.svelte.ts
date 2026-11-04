@@ -1,17 +1,23 @@
 // The fair's band, made on the spot with Web Audio: no files, no third parties. Off by default (the
-// family's rule since Stichle, 2026-10-12), switched on per device in Settings (`randomiser:sound`).
+// family's rule since Stichle, 2026-10-12), switched on per device in Settings (`randomiser:sound`);
+// a device that never used the switch takes Dashboard's default (src/lib/defaults.ts).
 // A browser only plays sound after a tap, so the context starts on the first pointer or key press.
 // The ticks, the Tusch, the clown horn and the quacks are from the sketches (plans/randomiser in
 // the workspace).
 
+import { readConfig } from '../../vendor/ewo/elements/config-client.js';
+import { soundsFor } from './defaults';
+
 const KEY = 'randomiser:sound';
 
 function stored() {
+  let saved: string | null = null;
   try {
-    return localStorage.getItem(KEY) === 'on';
+    saved = localStorage.getItem(KEY);
   } catch {
-    return false;
+    // storage blocked: Dashboard's default, else off
   }
+  return soundsFor(saved, readConfig().sounds);
 }
 
 export const sound = $state({ on: stored() });

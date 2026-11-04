@@ -17,6 +17,8 @@ WORKDIR /app
 ENV NODE_ENV=production PORT=8080 TZ=Europe/Berlin
 COPY --from=build /app/dist ./dist
 COPY server ./server
+# Folio's config helper (Dashboard's defaults), at the path server/server.mjs imports it from.
+COPY vendor/ewo/elements/config-server.js vendor/ewo/elements/config-core.js ./vendor/ewo/elements/
 COPY package.json ./
 USER node
 EXPOSE 8080

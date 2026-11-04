@@ -1,0 +1,8 @@
+{
+  "app": "randomiser",
+  "version": 1,
+  "settings": {
+    "lang": { "family": true },
+    "sounds": { "family": true }
+  }
+}

@@ -58,5 +58,26 @@ jobs:
           # The Census forwarder is wired in; without RANDOMISER_CENSUS it answers locally.
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:6999/_e.js)" = 200
           test "$(curl -s -o /dev/null -w '%{http_code}' -X POST --data '{}' http://127.0.0.1:6999/_e)" = 204
+          # Without Dashboard: its values block in the page with the built-in ones, and the manifest.
+          curl -sf http://127.0.0.1:6999/ | grep -q '<script type="application/json" id="ewo-config">{"lang":"system","sounds":false}</script>'
+          curl -sf http://127.0.0.1:6999/anything | grep -q 'id="ewo-config"'
+          curl -sf http://127.0.0.1:6999/ewo.config.json | grep -q '"app": "randomiser"'
           kill $server
           wait $server || true
+
+      # The server against a stand-in for Dashboard's apps' port: it takes the manifest, and the
+      # family's German and sounds reach the page.
+      - name: Smoke test Dashboard's values
+        run: |
+          node --input-type=module -e "
+            import http from 'node:http';
+            http.createServer((req, res) => {
+              if (req.method === 'PUT' && req.url === '/v1/manifest/randomiser') { req.resume(); return res.writeHead(204).end(); }
+              if (req.url === '/v1/config/randomiser') return res.writeHead(200, { 'content-type': 'application/json', etag: '\"1\"' }).end(JSON.stringify({ family: { lang: 'de', sounds: true, theme: 'dark' }, app: {} }));
+              res.writeHead(404).end();
+            }).listen(6998);
+          " &
+          DASHBOARD_URL=http://127.0.0.1:6998 PORT=6997 node server/server.mjs &
+          for _ in $(seq 1 20); do curl -sf http://127.0.0.1:6997/healthz && break; sleep 0.5; done
+          for _ in $(seq 1 20); do curl -sf http://127.0.0.1:6997/ | grep -q '"sounds":true' && break; sleep 0.5; done
+          curl -sf http://127.0.0.1:6997/ | grep -q '{"lang":"de","sounds":true}'

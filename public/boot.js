@@ -1,8 +1,18 @@
-// Applies the saved language before first paint, so there's no flash of the wrong one. The key is
-// the shared one (`ewo:lang`; a missing key means System); keep in step with src/lib/i18n.svelte.ts.
+// Applies the language before first paint, so there's no flash of the wrong one: the one picked on
+// this device (the shared key, `ewo:lang`; a missing key means Default), else Dashboard's default
+// (#ewo-config, which the server puts first in <head>), else the browser's. Keep in step with
+// src/lib/i18n.svelte.ts and src/lib/defaults.ts.
 // Randomiser is light only: no theme to apply, theme-color is the page's cream in index.html.
+var ewoConfig = {};
 try {
-  var lang = localStorage.getItem('ewo:lang');
+  ewoConfig = JSON.parse(document.getElementById('ewo-config').textContent) || {};
+} catch (e) {}
+try {
+  var lang;
+  try {
+    lang = localStorage.getItem('ewo:lang');
+  } catch (e) {}
+  if (lang !== 'en' && lang !== 'de') lang = ewoConfig.lang;
   if (lang !== 'en' && lang !== 'de') lang = (navigator.language || '').toLowerCase().indexOf('de') === 0 ? 'de' : 'en';
   document.documentElement.lang = lang;
 } catch (e) {}
